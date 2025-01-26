@@ -4,7 +4,6 @@ import { useState } from 'react';
 import Navbar from '@/components/Navbar';
 import TokenCard from '@/components/TokenCard';
 import TrendingTokens from '@/components/TrendingTokens';
-import { ThemeProvider } from '@/contexts/ThemeContext';
 
 // Mock trending token data
 const mockTrendingTokens = [
@@ -164,48 +163,46 @@ export default function Home() {
   };
 
   return (
-    <ThemeProvider>
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
-        {/* Navbar */}
-        <Navbar
-          user={mockUser}
-          onSearch={handleSearch}
-          onLogin={handleLogin}
-          onLogout={handleLogout}
-          onNavigate={handleNavigate}
-        />
-        
-        {/* Main Content */}
-        <main className="pt-20"> {/* Increased padding-top to account for navbar height */}
-          {/* Trending Tokens Section */}
-          <section className="w-full bg-gradient-to-r from-purple-500/10 to-green-500/10 dark:from-purple-900/20 dark:to-green-900/20">
-            <div className="max-w-7xl mx-auto">
-              <TrendingTokens 
-                tokens={mockTrendingTokens}
-                onViewAll={handleViewAllTrending}
-              />
-            </div>
-          </section>
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+      {/* Navbar */}
+      <Navbar
+        user={mockUser}
+        onSearch={handleSearch}
+        onLogin={handleLogin}
+        onLogout={handleLogout}
+        onNavigate={handleNavigate}
+      />
+      
+      {/* Main Content */}
+      <main className="pt-20">
+        {/* Trending Tokens Section */}
+        <section className="w-full bg-gradient-to-r from-purple-500/10 to-green-500/10 dark:from-purple-900/20 dark:to-green-900/20">
+          <div className="max-w-7xl mx-auto">
+            <TrendingTokens 
+              tokens={mockTrendingTokens}
+              onViewAll={handleViewAllTrending}
+            />
+          </div>
+        </section>
 
-          {/* Token Grid Section */}
-          <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {tokens.map(token => (
-                <TokenCard
-                  key={token.address}
-                  token={token}
-                  isSelected={selectedToken === token.address}
-                  onClick={() => setSelectedToken(token.address)}
-                  onPin={handleTokenPin}
-                  onVote={handleTokenVote}
-                  onReaction={handleTokenReaction}
-                  onFavorite={handleTokenFavorite}
-                />
-              ))}
-            </div>
-          </section>
-        </main>
-      </div>
-    </ThemeProvider>
+        {/* Token Grid Section */}
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {tokens.map(token => (
+              <TokenCard
+                key={token.address}
+                token={token}
+                isSelected={selectedToken === token.address}
+                onClick={() => setSelectedToken(token.address)}
+                onPin={handleTokenPin}
+                onVote={handleTokenVote}
+                onReaction={handleTokenReaction}
+                onFavorite={handleTokenFavorite}
+              />
+            ))}
+          </div>
+        </section>
+      </main>
+    </div>
   );
 } 
