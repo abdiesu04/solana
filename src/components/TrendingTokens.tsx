@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { ArrowRightIcon, TrendingUpIcon } from '@heroicons/react/24/outline';
+import { ArrowRightIcon, ArrowUpIcon } from '@heroicons/react/24/outline';
 import { useRef } from 'react';
 
 interface TrendingToken {
@@ -39,7 +39,7 @@ export default function TrendingTokens({ tokens = [], onViewAll }: TrendingToken
       {/* Section Header */}
       <div className="flex items-center justify-between mb-4 px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-2">
-          <TrendingUpIcon className="w-6 h-6 text-solana-purple" />
+          <ArrowUpIcon className="w-6 h-6 text-solana-purple" />
           <h2 className="text-xl font-bold dark:text-white text-gray-900">
             Trending Tokens
           </h2>
