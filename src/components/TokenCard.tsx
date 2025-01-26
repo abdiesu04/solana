@@ -65,15 +65,15 @@ export default function TokenCard({
         onHoverStart={() => setIsHovered(true)}
         onHoverEnd={() => setIsHovered(false)}
         className={`relative group cursor-pointer ${
-          isSelected ? 'ring-2 ring-blue-500' : ''
-        } ${token.isPinned ? 'border-2 border-yellow-400/50' : ''}`}
+          isSelected ? 'ring-2 ring-solana-purple' : ''
+        } ${token.isPinned ? 'border-2 border-solana-green/50' : ''}`}
       >
         {/* Glow effect */}
-        <div className={`absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-xl blur-xl transition-opacity duration-300 ${
+        <div className={`absolute inset-0 bg-gradient-to-r from-solana-purple/20 to-solana-green/20 rounded-xl blur-xl transition-opacity duration-300 ${
           isHovered || token.isPinned ? 'opacity-100' : 'opacity-0'
         }`} />
         
-        <div className="h-[280px] rounded-xl bg-gray-900/50 backdrop-blur-xl border border-gray-700/50 relative overflow-hidden transition-all duration-300">
+        <div className="h-[280px] rounded-xl glass border border-gray-700/50 relative overflow-hidden transition-all duration-300">
           {/* Pin Button */}
           <motion.button
             initial={{ scale: 0.8, opacity: 0 }}

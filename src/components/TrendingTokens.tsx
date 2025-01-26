@@ -20,7 +20,7 @@ interface TrendingTokensProps {
   onViewAll: () => void;
 }
 
-export default function TrendingTokens({ tokens, onViewAll }: TrendingTokensProps) {
+export default function TrendingTokens({ tokens = [], onViewAll }: TrendingTokensProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const scroll = (direction: 'left' | 'right') => {
@@ -30,12 +30,16 @@ export default function TrendingTokens({ tokens, onViewAll }: TrendingTokensProp
     }
   };
 
+  if (!tokens || tokens.length === 0) {
+    return null;
+  }
+
   return (
     <div className="relative w-full py-6">
       {/* Section Header */}
       <div className="flex items-center justify-between mb-4 px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-2">
-          <TrendingUpIcon className="w-6 h-6 text-blue-500" />
+          <TrendingUpIcon className="w-6 h-6 text-solana-purple" />
           <h2 className="text-xl font-bold dark:text-white text-gray-900">
             Trending Tokens
           </h2>
@@ -45,10 +49,8 @@ export default function TrendingTokens({ tokens, onViewAll }: TrendingTokensProp
           whileTap={{ scale: 0.98 }}
           onClick={onViewAll}
           className="flex items-center gap-2 px-4 py-2 rounded-lg 
-            dark:bg-blue-500/10 bg-blue-50 
-            dark:text-blue-400 text-blue-600
-            hover:bg-blue-500/20 dark:hover:bg-blue-500/20 
-            transition-colors duration-200"
+            bg-solana-purple/10 text-solana-purple
+            hover:bg-solana-purple/20 transition-colors duration-200"
         >
           View All
           <ArrowRightIcon className="w-4 h-4" />
@@ -92,7 +94,7 @@ export default function TrendingTokens({ tokens, onViewAll }: TrendingTokensProp
         {/* Tokens Scroll Area */}
         <div
           ref={containerRef}
-          className="flex overflow-x-auto scrollbar-hide gap-4 px-4 sm:px-6 lg:px-8 pb-4"
+          className="flex overflow-x-auto scrollbar-hidden gap-4 px-4 sm:px-6 lg:px-8 pb-4"
           style={{ scrollSnapType: 'x mandatory' }}
         >
           {tokens.map((token) => (
@@ -103,9 +105,9 @@ export default function TrendingTokens({ tokens, onViewAll }: TrendingTokensProp
               whileHover={{ y: -4 }}
               className="flex-none w-[300px] scroll-snap-align-start"
             >
-              <div className="p-4 rounded-xl dark:bg-gray-800/50 bg-white/50 backdrop-blur-lg 
+              <div className="p-4 rounded-xl glass
                 border dark:border-gray-700/50 border-gray-200/50 
-                dark:hover:border-blue-500/50 hover:border-blue-500/50
+                dark:hover:border-solana-purple/50 hover:border-solana-purple/50
                 transition-all duration-200 shadow-lg"
               >
                 {/* Token Header */}
@@ -164,7 +166,7 @@ export default function TrendingTokens({ tokens, onViewAll }: TrendingTokensProp
                   </div>
                   <div className="mt-2 h-2 rounded-full dark:bg-gray-700/50 bg-gray-200/50 overflow-hidden">
                     <div 
-                      className="h-full rounded-full bg-gradient-to-r from-blue-500 to-purple-500"
+                      className="h-full rounded-full bg-gradient-to-r from-solana-purple to-solana-green"
                       style={{ width: `${Math.min((token.votes / 1000) * 100, 100)}%` }}
                     />
                   </div>
