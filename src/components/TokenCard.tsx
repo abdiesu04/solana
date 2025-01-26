@@ -1,6 +1,14 @@
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { Area, AreaChart, ResponsiveContainer } from 'recharts';
+import { 
+  StarIcon,
+  PlusIcon
+} from '@heroicons/react/24/outline';
+import { 
+  StarIcon as StarIconSolid,
+  PlusIcon as PlusIconSolid
+} from '@heroicons/react/24/solid';
 import TokenDetailModal from './TokenDetailModal';
 
 interface TokenCardProps {
@@ -12,25 +20,41 @@ interface TokenCardProps {
     marketCap: number;
     volume24h: number;
     change24h: number;
+    votes: number;
+    isPinned?: boolean;
     reactions?: {
       rocket: number;
       fire: number;
-      poop: number;
     };
     isFavorite?: boolean;
   };
   isSelected: boolean;
   onClick: () => void;
-  onReaction: (address: string, reaction: 'rocket' | 'fire' | 'poop') => void;
+  onPin: (address: string) => void;
+  onVote: (address: string) => void;
+  onReaction: (address: string, reaction: 'rocket' | 'fire') => void;
   onFavorite: (address: string) => void;
 }
 
-export default function TokenCard({ token, isSelected, onClick, onReaction, onFavorite }: TokenCardProps) {
+export default function TokenCard({ 
+  token, 
+  isSelected, 
+  onClick, 
+  onPin,
+  onVote,
+  onReaction, 
+  onFavorite 
+}: TokenCardProps) {
+  const [isHovered, setIsHovered] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
-  // Generate smooth price data based on current price
   const chartData = Array.from({ length: 20 }, () => ({
     value: token.price * (0.95 + Math.random() * 0.1),
   }));
+
+  const handleClick = () => {
+    setIsDetailOpen(true);
+    onClick();
+  };
 
   return (
     <>
@@ -38,16 +62,42 @@ export default function TokenCard({ token, isSelected, onClick, onReaction, onFa
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         whileHover={{ scale: 1.02 }}
-        onClick={onClick}
-        className={`relative group cursor-pointer ${isSelected ? 'ring-2 ring-blue-500' : ''}`}
+        onHoverStart={() => setIsHovered(true)}
+        onHoverEnd={() => setIsHovered(false)}
+        className={`relative group cursor-pointer ${
+          isSelected ? 'ring-2 ring-blue-500' : ''
+        } ${token.isPinned ? 'border-2 border-yellow-400/50' : ''}`}
       >
         {/* Glow effect */}
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        <div className={`absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-xl blur-xl transition-opacity duration-300 ${
+          isHovered || token.isPinned ? 'opacity-100' : 'opacity-0'
+        }`} />
         
-        <div className="h-[280px] rounded-xl bg-gray-900/50 backdrop-blur-xl border border-gray-700/50 relative overflow-hidden group-hover:border-blue-500/50 transition-all duration-300">
-          {/* Main content container with proper spacing */}
-          <div className="flex flex-col h-full">
-            {/* Header section */}
+        <div className="h-[280px] rounded-xl bg-gray-900/50 backdrop-blur-xl border border-gray-700/50 relative overflow-hidden transition-all duration-300">
+          {/* Pin Button */}
+          <motion.button
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            whileHover={{ scale: 1.1 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onPin(token.address);
+            }}
+            className={`absolute top-2 right-2 z-10 p-1.5 rounded-full 
+              ${token.isPinned 
+                ? 'bg-yellow-400/20 text-yellow-400' 
+                : 'bg-gray-800/50 text-gray-400 hover:text-yellow-400 hover:bg-gray-700/50'}`}
+          >
+            {token.isPinned ? (
+              <PlusIconSolid className="w-4 h-4 rotate-45" />
+            ) : (
+              <PlusIcon className="w-4 h-4 rotate-45" />
+            )}
+          </motion.button>
+
+          {/* Main content */}
+          <div className="flex flex-col h-full" onClick={handleClick}>
+            {/* Header */}
             <div className="p-4 border-b border-gray-700/50">
               <div className="flex justify-between items-start">
                 <div>
@@ -67,7 +117,7 @@ export default function TokenCard({ token, isSelected, onClick, onReaction, onFa
               </div>
             </div>
 
-            {/* Chart section */}
+            {/* Chart */}
             <div className="flex-1 p-2">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={chartData}>
@@ -95,7 +145,7 @@ export default function TokenCard({ token, isSelected, onClick, onReaction, onFa
               </ResponsiveContainer>
             </div>
 
-            {/* Footer section */}
+            {/* Footer */}
             <div className="p-4 border-t border-gray-700/50">
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -112,10 +162,25 @@ export default function TokenCard({ token, isSelected, onClick, onReaction, onFa
                 </div>
               </div>
 
-              {/* Reactions and actions */}
+              {/* Actions */}
               <div className="flex justify-between items-center mt-3">
                 <div className="flex gap-2">
-                  <button
+                  {/* Vote Button */}
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onVote(token.address);
+                    }}
+                    className="flex items-center gap-1 text-sm bg-gray-800/50 px-3 py-1.5 rounded-md hover:bg-gray-700/50 transition-colors"
+                  >
+                    <StarIcon className="w-4 h-4" />
+                    <span>{token.votes || 0}</span>
+                  </motion.button>
+                  
+                  {/* Reactions */}
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
                     onClick={(e) => {
                       e.stopPropagation();
                       onReaction(token.address, 'rocket');
@@ -123,8 +188,9 @@ export default function TokenCard({ token, isSelected, onClick, onReaction, onFa
                     className="text-sm bg-gray-800/50 px-2 py-1 rounded-md hover:bg-gray-700/50"
                   >
                     🚀 {token.reactions?.rocket || 0}
-                  </button>
-                  <button
+                  </motion.button>
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
                     onClick={(e) => {
                       e.stopPropagation();
                       onReaction(token.address, 'fire');
@@ -132,27 +198,31 @@ export default function TokenCard({ token, isSelected, onClick, onReaction, onFa
                     className="text-sm bg-gray-800/50 px-2 py-1 rounded-md hover:bg-gray-700/50"
                   >
                     🔥 {token.reactions?.fire || 0}
-                  </button>
+                  </motion.button>
                 </div>
-                <button
+                
+                {/* Favorite Button */}
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
                   onClick={(e) => {
                     e.stopPropagation();
                     onFavorite(token.address);
                   }}
-                  className="text-gray-400 hover:text-yellow-500 transition-colors"
+                  className={`p-1.5 rounded-full transition-colors ${
+                    token.isFavorite 
+                      ? 'text-yellow-400 bg-yellow-400/20' 
+                      : 'text-gray-400 hover:text-yellow-400'
+                  }`}
                 >
-                  {token.isFavorite ? '★' : '☆'}
-                </button>
+                  {token.isFavorite ? (
+                    <StarIconSolid className="w-4 h-4" />
+                  ) : (
+                    <StarIcon className="w-4 h-4" />
+                  )}
+                </motion.button>
               </div>
             </div>
           </div>
-
-          {/* Clickable overlay */}
-          <div 
-            className="absolute inset-0 cursor-pointer" 
-            onClick={onClick}
-            aria-label={`View details for ${token.name}`}
-          />
         </div>
       </motion.div>
 
