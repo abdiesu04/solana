@@ -1,4 +1,6 @@
 import { motion } from 'framer-motion';
+import { FaRocket, FaFire, FaPoop, FaStar } from 'react-icons/fa';
+import { formatNumber, formatPercentage } from '@/utils/format';
 import { useState } from 'react';
 import { Area, AreaChart, ResponsiveContainer } from 'recharts';
 import { 
@@ -25,6 +27,7 @@ interface TokenCardProps {
     reactions?: {
       rocket: number;
       fire: number;
+      poop: number;
     };
     isFavorite?: boolean;
   };
@@ -32,7 +35,7 @@ interface TokenCardProps {
   onClick: () => void;
   onPin: (address: string) => void;
   onVote: (address: string) => void;
-  onReaction: (address: string, reaction: 'rocket' | 'fire') => void;
+  onReaction: (address: string, reaction: 'rocket' | 'fire' | 'poop') => void;
   onFavorite: (address: string) => void;
 }
 
@@ -56,17 +59,21 @@ export default function TokenCard({
     onClick();
   };
 
+  const isPositiveChange = token.change24h >= 0;
+
   return (
     <>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
         onHoverStart={() => setIsHovered(true)}
         onHoverEnd={() => setIsHovered(false)}
         className={`relative group cursor-pointer ${
           isSelected ? 'ring-2 ring-solana-purple' : ''
         } ${token.isPinned ? 'border-2 border-solana-green/50' : ''}`}
+        onClick={handleClick}
       >
         {/* Glow effect */}
         <div className={`absolute inset-0 bg-gradient-to-r from-solana-purple/20 to-solana-green/20 rounded-xl blur-xl transition-opacity duration-300 ${
@@ -96,23 +103,29 @@ export default function TokenCard({
           </motion.button>
 
           {/* Main content */}
-          <div className="flex flex-col h-full" onClick={handleClick}>
+          <div className="flex flex-col h-full">
             {/* Header */}
             <div className="p-4 border-b border-gray-700/50">
               <div className="flex justify-between items-start">
                 <div>
-                  <h3 className="text-lg font-semibold text-white group-hover:text-blue-400 transition-colors duration-300 truncate max-w-[150px]">
+                  <h3 className="text-xl font-bold text-white group-hover:text-solana-purple transition-colors">
                     {token.name}
                   </h3>
                   <p className="text-sm text-gray-400">{token.symbol}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-lg font-semibold text-white">
-                    ${token.price.toLocaleString()}
+                  <p className="text-2xl font-bold text-white">
+                    ${formatNumber(token.price)}
                   </p>
-                  <p className={`text-sm ${token.change24h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                    {token.change24h >= 0 ? '+' : ''}{token.change24h.toFixed(2)}%
-                  </p>
+                  <div
+                    className={`flex items-center space-x-1 ${
+                      isPositiveChange ? 'text-green-400' : 'text-red-400'
+                    }`}
+                  >
+                    <span className="text-sm font-medium">
+                      {isPositiveChange ? '↑' : '↓'} {formatPercentage(Math.abs(token.change24h))}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -149,16 +162,12 @@ export default function TokenCard({
             <div className="p-4 border-t border-gray-700/50">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-xs text-gray-400 mb-1">Market Cap</p>
-                  <p className="text-sm text-white font-medium">
-                    ${(token.marketCap / 1e6).toFixed(2)}M
-                  </p>
+                  <p className="text-sm text-gray-400">Market Cap</p>
+                  <p className="text-white font-medium">${formatNumber(token.marketCap)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400 mb-1">Volume 24h</p>
-                  <p className="text-sm text-white font-medium">
-                    ${(token.volume24h / 1e6).toFixed(2)}M
-                  </p>
+                  <p className="text-sm text-gray-400">Volume 24h</p>
+                  <p className="text-white font-medium">${formatNumber(token.volume24h)}</p>
                 </div>
               </div>
 
@@ -174,7 +183,7 @@ export default function TokenCard({
                     }}
                     className="flex items-center gap-1 text-sm bg-gray-800/50 px-3 py-1.5 rounded-md hover:bg-gray-700/50 transition-colors"
                   >
-                    <StarIcon className="w-4 h-4" />
+                    <FaStar className={token.isFavorite ? 'text-yellow-400' : 'text-gray-600'} />
                     <span>{token.votes || 0}</span>
                   </motion.button>
                   
@@ -187,7 +196,7 @@ export default function TokenCard({
                     }}
                     className="text-sm bg-gray-800/50 px-2 py-1 rounded-md hover:bg-gray-700/50"
                   >
-                    🚀 {token.reactions?.rocket || 0}
+                    <FaRocket />
                   </motion.button>
                   <motion.button
                     whileTap={{ scale: 0.95 }}
@@ -197,7 +206,17 @@ export default function TokenCard({
                     }}
                     className="text-sm bg-gray-800/50 px-2 py-1 rounded-md hover:bg-gray-700/50"
                   >
-                    🔥 {token.reactions?.fire || 0}
+                    <FaFire />
+                  </motion.button>
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onReaction(token.address, 'poop');
+                    }}
+                    className="text-sm bg-gray-800/50 px-2 py-1 rounded-md hover:bg-gray-700/50"
+                  >
+                    <FaPoop />
                   </motion.button>
                 </div>
                 

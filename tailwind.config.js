@@ -12,6 +12,7 @@ module.exports = {
         // Solana theme colors
         'solana-purple': '#9945FF',
         'solana-green': '#14F195',
+        'brown-400': '#8B4513',
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
@@ -48,13 +49,16 @@ module.exports = {
         'gradient-xy': {
           '0%, 100%': {
             'background-size': '400% 400%',
-            'background-position': 'left center'
+            'background-position': '0% 0%'
           },
           '50%': {
             'background-size': '200% 200%',
-            'background-position': 'right center'
+            'background-position': '100% 100%'
           }
         }
+      },
+      backdropBlur: {
+        xs: '2px'
       }
     },
   },

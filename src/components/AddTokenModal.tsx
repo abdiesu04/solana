@@ -18,6 +18,7 @@ interface AddTokenModalProps {
   onAddToken: (token: Token) => void;
 }
 
+
 export default function AddTokenModal({
   isOpen,
   onClose,
@@ -33,33 +34,113 @@ export default function AddTokenModal({
     setError('');
 
     try {
-      // Use the wrapped SOL address as an example
-      const response = await axios.get(
-        `https://api.coingecko.com/api/v3/simple/token_price/solana?contract_addresses=${address}&vs_currencies=usd&include_market_cap=true&include_24hr_vol=true&include_24hr_change=true&include_last_updated_at=true`,
-        {
-          headers: {
-            'Accept': 'application/json'
-          }
-        }
-      );
-
-      const tokenData = response.data[address];
-      if (!tokenData) {
-        throw new Error('Token not found');
+      // First, validate the address format
+      if (!address.match(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/)) {
+        throw new Error('Invalid Solana address format');
       }
 
-      onAddToken({
-        address,
-        name: 'SOL Token', // For demonstration
-        symbol: 'SOL',
-        price: tokenData.usd,
-        marketCap: tokenData.usd_market_cap || 0,
-        volume24h: tokenData.usd_24h_vol || 0,
-        change24h: tokenData.usd_24h_change || 0,
-      });
-    } catch (error) {
-      console.error('API Error:', error);
-      setError('Failed to fetch token data. Try this address: So11111111111111111111111111111111111111112');
+      let tokenAdded = false;
+
+      // Try CoinGecko API first as it provides more comprehensive price data
+      try {
+        // First get the coin ID using the contract address
+        const coinResponse = await axios.get(
+          `https://api.coingecko.com/api/v3/coins/solana/contract/${address}`,
+          {
+            headers: {
+              'Accept': 'application/json'
+            }
+          }
+        );
+
+        const coinData = coinResponse.data;
+        
+        // Get detailed market data for the coin
+        const marketResponse = await axios.get(
+          `https://api.coingecko.com/api/v3/coins/${coinData.id}?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false`,
+          {
+            headers: {
+              'Accept': 'application/json'
+            }
+          }
+        );
+
+        const marketData = marketResponse.data;
+
+        onAddToken({
+          address,
+          name: marketData.name,
+          symbol: marketData.symbol.toUpperCase(),
+          price: marketData.market_data.current_price.usd,
+          marketCap: marketData.market_data.market_cap.usd,
+          volume24h: marketData.market_data.total_volume.usd,
+          change24h: marketData.market_data.price_change_percentage_24h,
+        });
+        tokenAdded = true;
+      } catch (coingeckoError) {
+        console.warn('CoinGecko API failed:', coingeckoError);
+        
+        // Try Solscan as fallback
+        try {
+          const solscanResponse = await axios.get(
+            `https://public-api.solscan.io/token/meta?tokenAddress=${address}`,
+            {
+              headers: {
+                'Accept': 'application/json'
+              }
+            }
+          );
+
+          const tokenData = solscanResponse.data;
+
+          // Get price data from Solscan
+          const priceResponse = await axios.get(
+            `https://public-api.solscan.io/market/token/${address}`,
+            {
+              headers: {
+                'Accept': 'application/json'
+              }
+            }
+          );
+
+          const priceData = priceResponse.data;
+          
+          onAddToken({
+            address,
+            name: tokenData.name || 'Unknown Token',
+            symbol: tokenData.symbol?.toUpperCase() || 'UNKNOWN',
+            price: priceData.priceUsdt || 0,
+            marketCap: priceData.marketCapFD || 0,
+            volume24h: priceData.volume24h || 0,
+            change24h: priceData.priceChange24h || 0,
+          });
+          tokenAdded = true;
+        } catch (solscanError) {
+          console.warn('Solscan API failed:', solscanError);
+        }
+      }
+
+      // If both APIs failed, add token with minimal data
+      if (!tokenAdded) {
+        onAddToken({
+          address,
+          name: `Token ${address.slice(0, 6)}...${address.slice(-4)}`,
+          symbol: 'TOKEN',
+          price: 0,
+          marketCap: 0,
+          volume24h: 0,
+          change24h: 0,
+        });
+      }
+
+      onClose();
+    } catch (error: any) {
+      console.error('Error adding token:', error);
+      setError(
+        error.message === 'Invalid Solana address format'
+          ? 'Please enter a valid Solana address'
+          : 'Could not fetch token data. Please verify the contract address.'
+      );
     } finally {
       setLoading(false);
     }
