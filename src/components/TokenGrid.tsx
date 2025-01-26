@@ -1,118 +1,43 @@
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useEffect } from 'react';
 import TokenCard from './TokenCard';
 import TokenDetailChart from './TokenDetailChart';
 import { Token } from '@/types/token';
+import { coingeckoService } from '@/services/coingecko';
+import AddTokenModal from './AddTokenModal';
 
-interface TokenGridProps {
-  onTokenSelect: (token: Token | null) => void;
-  selectedToken: Token | null;
-  onTokenReaction: (token: Token, reaction: 'rocket' | 'fire' | 'poop') => void;
-}
-
-export default function TokenGrid({ onTokenSelect, selectedToken, onTokenReaction }: TokenGridProps) {
+export default function TokenGrid() {
   const [tokens, setTokens] = useState<Token[]>([]);
-  const [sortBy, setSortBy] = useState<'price' | 'marketCap' | 'volume24h' | 'change24h'>('marketCap');
-  const [filterFavorites, setFilterFavorites] = useState(false);
-  const [containerWidth, setContainerWidth] = useState(0);
+  const [selectedToken, setSelectedToken] = useState<Token | null>(null);
+  const [isAddTokenOpen, setIsAddTokenOpen] = useState(false);
 
-  // Calculate optimal columns based on container width
-  const getGridColumns = (width: number) => {
-    if (width < 640) return 1; // Mobile
-    if (width < 900) return 2; // Small screens/tablets
-    if (width < 1200) return 3; // Medium screens
-    if (width < 1600) return 4; // Large screens
-    return 5; // Extra large screens
-  };
-
+  // Listen for new token additions
   useEffect(() => {
-    // Initial container width measurement
-    const updateWidth = () => {
-      const gridContainer = document.getElementById('token-grid-container');
-      if (gridContainer) {
-        setContainerWidth(gridContainer.offsetWidth);
-      }
+    const handleTokenAdded = (event: Event) => {
+      const customEvent = event as CustomEvent<string>;
+      coingeckoService.getTokenData(customEvent.detail)
+        .then(tokenData => {
+          if (tokenData) {
+            setTokens(prev => [...prev, tokenData]);
+          }
+        })
+        .catch(error => {
+          console.error('Error adding token:', error);
+        });
     };
 
-    // Update width on mount and window resize
-    updateWidth();
-    window.addEventListener('resize', updateWidth);
-
-    // Cleanup
-    return () => window.removeEventListener('resize', updateWidth);
+    window.addEventListener('tokenAdded', handleTokenAdded);
+    return () => window.removeEventListener('tokenAdded', handleTokenAdded);
   }, []);
 
-  useEffect(() => {
-    // Mock data for demonstration
-    const mockTokens: Token[] = [
-      {
-        address: '0x123',
-        name: 'Solana',
-        symbol: 'SOL',
-        price: 123.45,
-        marketCap: 1234567890,
-        volume24h: 987654321,
-        change24h: 5.67,
-        votes: 100,
-        reactions: {
-          rocket: 10,
-          fire: 5,
-          poop: 2
-        }
-      },
-      {
-        address: '0x456',
-        name: 'Ethereum',
-        symbol: 'ETH',
-        price: 2345.67,
-        marketCap: 9876543210,
-        volume24h: 876543210,
-        change24h: -2.34,
-        votes: 80,
-        reactions: {
-          rocket: 8,
-          fire: 12,
-          poop: 1
-        }
-      },
-      // Add more mock tokens as needed
-    ];
-
-    setTokens(mockTokens);
-
-    // Listen for new tokens
-    const handleTokenAdded = (event: CustomEvent<Token>) => {
-      setTokens(prev => [...prev, event.detail]);
-    };
-
-    window.addEventListener('tokenAdded', handleTokenAdded as EventListener);
-    return () => window.removeEventListener('tokenAdded', handleTokenAdded as EventListener);
-  }, []);
-
-  const handlePin = (address: string) => {
-    setTokens(tokens.map(token => 
-      token.address === address 
-        ? { ...token, isPinned: !token.isPinned }
-        : token
-    ));
-  };
-
-  const handleVote = (address: string) => {
-    setTokens(tokens.map(token =>
-      token.address === address
-        ? { ...token, votes: (token.votes || 0) + 1 }
-        : token
-    ));
-  };
-
-  const handleReaction = (address: string, reaction: 'rocket' | 'fire' | 'poop') => {
-    setTokens(tokens.map(token => {
-      if (token.address === address) {
+  const handleReaction = (tokenId: string, reactionType: 'rocket' | 'fire' | 'poop') => {
+    setTokens(prev => prev.map(token => {
+      if (token.id === tokenId && token.reactions) {
         return {
           ...token,
           reactions: {
             ...token.reactions,
-            [reaction]: (token.reactions?.[reaction] || 0) + 1
+            [reactionType]: (token.reactions[reactionType] || 0) + 1
           }
         };
       }
@@ -120,120 +45,88 @@ export default function TokenGrid({ onTokenSelect, selectedToken, onTokenReactio
     }));
   };
 
-  const handleFavorite = (address: string) => {
-    setTokens(tokens.map(token =>
-      token.address === address
-        ? { ...token, isFavorite: !token.isFavorite }
-        : token
-    ));
-  };
-
-  const sortedTokens = [...tokens].sort((a, b) => {
-    if (a.isPinned && !b.isPinned) return -1;
-    if (!a.isPinned && b.isPinned) return 1;
-    return b[sortBy] - a[sortBy];
-  });
-
-  const filteredTokens = filterFavorites 
-    ? sortedTokens.filter(token => token.isFavorite)
-    : sortedTokens;
-
-  const columns = getGridColumns(containerWidth);
-  const cardWidth = Math.floor((containerWidth - (columns + 1) * 24) / columns); // 24px gap
-
   return (
-    <div className="space-y-6">
-      {/* Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-4 bg-[#1E293B]/50 rounded-xl p-4 backdrop-blur-sm border border-[#334155]">
-        <div className="flex flex-wrap gap-3">
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
-            className="px-4 py-2 rounded-xl bg-[#1E293B] text-[#94A3B8] border border-[#334155] focus:outline-none focus:ring-2 focus:ring-[#6157FF] focus:border-transparent shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)] hover:bg-[#252F43] transition-colors"
-          >
-            <option value="marketCap">Market Cap</option>
-            <option value="price">Price</option>
-            <option value="volume24h">Volume</option>
-            <option value="change24h">Change</option>
-          </select>
-          <button
-            onClick={() => setFilterFavorites(!filterFavorites)}
-            className={`px-4 py-2 rounded-xl border transition-all duration-300 ${
-              filterFavorites
-                ? 'bg-[#6157FF] text-white border-[#6157FF] shadow-[0_0_12px_rgba(97,87,255,0.2)]'
-                : 'bg-[#1E293B] text-[#94A3B8] border-[#334155] hover:bg-[#252F43]'
-            }`}
-          >
-            Favorites
-          </button>
-        </div>
-      </div>
-
-      {/* Grid */}
-      <div 
-        id="token-grid-container"
-        className="grid gap-6 auto-rows-[280px]"
-        style={{
-          gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-        }}
-      >
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
         {/* Add Token Card */}
-        <div
-          onClick={() => window.dispatchEvent(new CustomEvent('openAddTokenModal'))}
-          className="rounded-xl bg-[#1E293B] border border-[#334155] p-6 flex items-center justify-center cursor-pointer group transition-all duration-300
-            hover:bg-[#252F43] hover:border-[#6157FF]/30 hover:shadow-[0_0_20px_rgba(97,87,255,0.1)]
-            shadow-[6px_6px_12px_rgba(0,0,0,0.2),-6px_-6px_12px_rgba(255,255,255,0.01)]"
+        <button
+          onClick={() => setIsAddTokenOpen(true)}
+          className="h-[200px] rounded-xl bg-gray-800 border-2 border-dashed border-gray-600 hover:border-blue-500 transition-colors duration-200 flex flex-col items-center justify-center gap-2 group"
         >
-          <div className="text-center">
-            <div className="w-16 h-16 rounded-full bg-[#252F43] flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300 shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]">
-              <svg className="w-8 h-8 text-[#6157FF]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-bold text-white group-hover:text-[#6157FF] transition-colors">
-              Add Token
-            </h3>
-            <p className="text-[#94A3B8] mt-2 text-sm">Track a new token</p>
+          <div className="w-12 h-12 rounded-full bg-gray-700 group-hover:bg-blue-500 transition-colors duration-200 flex items-center justify-center">
+            <svg className="w-6 h-6 text-gray-400 group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
           </div>
-        </div>
+          <span className="text-gray-400 group-hover:text-blue-500 font-medium">Add Token</span>
+        </button>
 
         {/* Token Cards */}
-        {filteredTokens.map((token) => (
-          <TokenCard
-            key={token.address}
-            token={token}
-            isSelected={selectedToken?.address === token.address}
-            onClick={() => onTokenSelect(token)}
-            onPin={(address) => {
-              setTokens(prev =>
-                prev.map(t =>
-                  t.address === address ? { ...t, isPinned: !t.isPinned } : t
-                )
-              );
-            }}
-            onVote={(address) => {
-              setTokens(prev =>
-                prev.map(t =>
-                  t.address === address ? { ...t, votes: (t.votes || 0) + 1 } : t
-                )
-              );
-            }}
-            onReaction={(address, reaction) => {
-              const token = tokens.find(t => t.address === address);
-              if (token) {
-                onTokenReaction(token, reaction);
-              }
-            }}
-            onFavorite={(address) => {
-              setTokens(prev =>
-                prev.map(t =>
-                  t.address === address ? { ...t, isFavorite: !t.isFavorite } : t
-                )
-              );
-            }}
-          />
+        {tokens.map(token => (
+          <div
+            key={token.id}
+            className="bg-gray-800 rounded-xl p-4 hover:bg-gray-750 transition-all duration-200 cursor-pointer"
+            onClick={() => setSelectedToken(token)}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <img src={token.image} alt={token.name} className="w-10 h-10 rounded-full" />
+                <div>
+                  <h3 className="font-semibold text-white">{token.name}</h3>
+                  <p className="text-sm text-gray-400">{token.symbol}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-white font-semibold">
+                  ${token.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}
+                </p>
+                <p className={`text-sm ${token.change24h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                  {token.change24h >= 0 ? '+' : ''}{token.change24h.toFixed(2)}%
+                </p>
+              </div>
+            </div>
+
+            {/* Mini Chart Placeholder */}
+            <div className="h-20 bg-gray-700/50 rounded-lg mb-4" />
+
+            {/* Reactions */}
+            <div className="flex gap-2">
+              {token.reactions && Object.entries(token.reactions).map(([type, count]) => (
+                <button
+                  key={type}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleReaction(token.id, type as 'rocket' | 'fire' | 'poop');
+                  }}
+                  className="flex items-center gap-1 px-2 py-1 rounded bg-gray-700 hover:bg-gray-600 transition-colors"
+                >
+                  <span>{type === 'rocket' ? '🚀' : type === 'fire' ? '🔥' : '💩'}</span>
+                  <span className="text-sm text-gray-300">{count}</span>
+                </button>
+              ))}
+            </div>
+          </div>
         ))}
       </div>
-    </div>
+
+      {/* Add Token Modal */}
+      <AddTokenModal
+        isOpen={isAddTokenOpen}
+        onClose={() => setIsAddTokenOpen(false)}
+      />
+
+      {/* Token Detail Modal */}
+      {selectedToken && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-gray-800 rounded-xl w-full max-w-3xl max-h-[90vh] overflow-auto">
+            <TokenDetailChart
+              token={selectedToken}
+              onClose={() => setSelectedToken(null)}
+              onReaction={(type) => handleReaction(selectedToken.id, type as 'rocket' | 'fire' | 'poop')}
+            />
+          </div>
+        </div>
+      )}
+    </>
   );
 } 
