@@ -1,7 +1,8 @@
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 import AddTokenModal from './AddTokenModal';
 import TokenCard from './TokenCard';
+import TokenDetailChart from './TokenDetailChart';
 
 interface Token {
   address: string;
@@ -16,22 +17,43 @@ interface Token {
 export default function TokenGrid() {
   const [tokens, setTokens] = useState<Token[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedToken, setSelectedToken] = useState<Token | null>(null);
 
   return (
-    <div className="p-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {/* Add Token Card */}
+    <div className="p-6 flex gap-6">
+      {/* Left side - Chart Area */}
+      <AnimatePresence>
+        {selectedToken && (
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="hidden lg:block w-1/2 sticky top-6 h-[calc(100vh-3rem)]"
+          >
+            <TokenDetailChart 
+              token={selectedToken} 
+              onClose={() => setSelectedToken(null)}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Right side - Token Grid */}
+      <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 ${selectedToken ? 'lg:w-1/2' : 'w-full'}`}>
+        {/* Add Token Card - Enhanced with glassmorphism and glow effects */}
         <motion.div
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
-          className="cursor-pointer"
+          className="cursor-pointer relative group"
           onClick={() => setIsModalOpen(true)}
         >
-          <div className="h-48 rounded-xl bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 p-6 flex items-center justify-center group hover:border-blue-500 transition-all duration-300">
-            <div className="flex flex-col items-center space-y-4">
-              <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center group-hover:bg-blue-500/20 transition-all duration-300">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-xl blur-xl group-hover:blur-2xl transition-all duration-300" />
+          <div className="h-48 rounded-xl bg-gray-900/50 backdrop-blur-xl border border-gray-700/50 p-6 flex items-center justify-center relative overflow-hidden group-hover:border-blue-500/50 transition-all duration-300">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="flex flex-col items-center space-y-4 relative z-10">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                 <svg
-                  className="w-6 h-6 text-blue-500"
+                  className="w-8 h-8 text-white"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -44,16 +66,28 @@ export default function TokenGrid() {
                   />
                 </svg>
               </div>
-              <span className="text-gray-400 group-hover:text-blue-500 transition-all duration-300">
+              <span className="text-lg font-medium text-white group-hover:text-blue-400 transition-colors duration-300">
                 Add Token
               </span>
+              <span className="text-sm text-gray-400 text-center">
+                Click to add a new token
+              </span>
+            </div>
+            {/* Animated border effect */}
+            <div className="absolute inset-0 border border-blue-500/50 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <div className="absolute inset-0 animate-pulse-slow" />
             </div>
           </div>
         </motion.div>
 
         {/* Token Cards */}
         {tokens.map((token) => (
-          <TokenCard key={token.address} token={token} />
+          <TokenCard 
+            key={token.address} 
+            token={token}
+            isSelected={selectedToken?.address === token.address}
+            onClick={() => setSelectedToken(token)}
+          />
         ))}
       </div>
 
