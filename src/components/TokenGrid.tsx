@@ -21,21 +21,58 @@ interface Token {
   isFavorite?: boolean;
 }
 
-export default function TokenGrid() {
+interface TokenGridProps {
+  onTokenSelect: (token: Token | null) => void;
+  selectedToken: Token | null;
+  onTokenReaction: (token: Token, reaction: 'rocket' | 'fire' | 'poop') => void;
+}
+
+export default function TokenGrid({ onTokenSelect, selectedToken, onTokenReaction }: TokenGridProps) {
   const [tokens, setTokens] = useState<Token[]>([]);
-  const [selectedToken, setSelectedToken] = useState<Token | null>(null);
   const [sortBy, setSortBy] = useState<'price' | 'marketCap' | 'volume24h' | 'change24h'>('marketCap');
   const [filterFavorites, setFilterFavorites] = useState(false);
 
   useEffect(() => {
+    // Mock data for demonstration
+    const mockTokens: Token[] = [
+      {
+        address: '0x123',
+        name: 'Solana',
+        symbol: 'SOL',
+        price: 123.45,
+        marketCap: 1234567890,
+        volume24h: 987654321,
+        change24h: 5.67,
+        votes: 100,
+        reactions: {
+          rocket: 10,
+          fire: 5,
+          poop: 2
+        }
+      },
+      {
+        address: '0x456',
+        name: 'Ethereum',
+        symbol: 'ETH',
+        price: 2345.67,
+        marketCap: 9876543210,
+        volume24h: 876543210,
+        change24h: -2.34,
+        votes: 80,
+        reactions: {
+          rocket: 8,
+          fire: 12,
+          poop: 1
+        }
+      },
+      // Add more mock tokens as needed
+    ];
+
+    setTokens(mockTokens);
+
+    // Listen for new tokens
     const handleTokenAdded = (event: CustomEvent<Token>) => {
-      setTokens(prevTokens => [...prevTokens, {
-        ...event.detail,
-        votes: 0,
-        reactions: { rocket: 0, fire: 0, poop: 0 },
-        isFavorite: false,
-        isPinned: false
-      }]);
+      setTokens(prev => [...prev, event.detail]);
     };
 
     window.addEventListener('tokenAdded', handleTokenAdded as EventListener);
@@ -91,36 +128,15 @@ export default function TokenGrid() {
     ? sortedTokens.filter(token => token.isFavorite)
     : sortedTokens;
 
-  const container = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
-  };
-
-  const item = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0 }
-  };
-
   return (
-    <div className="relative overflow-hidden">
-      {/* Animated Background */}
-      <div className="absolute inset-0 opacity-20">
-        <div className="absolute inset-0 bg-gradient-to-br from-solana-purple/10 via-purple-500/10 to-solana-green/10 animate-gradient-xy" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(17,24,39,0),rgba(17,24,39,1))]" />
-      </div>
-
+    <div className="space-y-6">
       {/* Controls */}
-      <div className="relative z-10 p-6 flex flex-wrap gap-4 items-center justify-between">
-        <div className="flex gap-2">
+      <div className="flex items-center justify-between bg-gray-800/50 rounded-xl p-4">
+        <div className="flex gap-4">
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as any)}
-            className="px-3 py-1.5 rounded-lg bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-solana-purple"
+            className="px-4 py-2 rounded-lg bg-gray-700/50 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-solana-purple"
           >
             <option value="marketCap">Market Cap</option>
             <option value="price">Price</option>
@@ -129,10 +145,10 @@ export default function TokenGrid() {
           </select>
           <button
             onClick={() => setFilterFavorites(!filterFavorites)}
-            className={`px-3 py-1.5 rounded-lg border transition-colors ${
+            className={`px-4 py-2 rounded-lg border transition-colors ${
               filterFavorites
                 ? 'bg-solana-purple text-white border-solana-purple'
-                : 'bg-gray-800 text-gray-400 border-gray-700 hover:text-white'
+                : 'bg-gray-700/50 text-gray-300 border-gray-600 hover:text-white'
             }`}
           >
             Favorites
@@ -140,76 +156,63 @@ export default function TokenGrid() {
         </div>
       </div>
 
-      {/* Main Grid */}
-      <div className="relative z-10 p-6 pt-0">
-        <motion.div
-          variants={container}
-          initial="hidden"
-          animate="show"
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+      {/* Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {/* Add Token Card */}
+        <div
+          onClick={() => window.dispatchEvent(new CustomEvent('openAddTokenModal'))}
+          className="bg-gray-800/50 rounded-xl border border-gray-700/50 p-6 flex items-center justify-center cursor-pointer hover:bg-gray-700/50 hover:border-solana-purple/50 transition-all group h-[260px]"
         >
-          {/* Add Token Card */}
-          <motion.div variants={item}>
-            <div
-              onClick={() => window.dispatchEvent(new CustomEvent('openAddTokenModal'))}
-              className="h-[280px] rounded-xl glass border border-gray-700/50 p-6 flex items-center justify-center relative overflow-hidden cursor-pointer group hover:border-solana-purple/50 transition-all duration-300"
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-solana-purple/10 to-solana-green/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              <div className="relative z-10 text-center">
-                <div className="w-16 h-16 rounded-full bg-gray-800/50 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-                  <svg className="w-8 h-8 text-solana-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-bold text-white group-hover:text-solana-purple transition-colors">
-                  Add Token
-                </h3>
-                <p className="text-gray-400 mt-2">Track a new token</p>
-              </div>
+          <div className="text-center">
+            <div className="w-16 h-16 rounded-full bg-gray-700/50 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+              <svg className="w-8 h-8 text-solana-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
             </div>
-          </motion.div>
+            <h3 className="text-xl font-bold text-white group-hover:text-solana-purple transition-colors">
+              Add Token
+            </h3>
+            <p className="text-gray-400 mt-2">Track a new token</p>
+          </div>
+        </div>
 
-          {/* Token Cards */}
-          <AnimatePresence>
-            {filteredTokens.map((token) => (
-              <motion.div
-                key={token.address}
-                variants={item}
-                layout
-              >
-                <TokenCard
-                  token={token}
-                  isSelected={selectedToken?.address === token.address}
-                  onClick={() => setSelectedToken(token)}
-                  onPin={handlePin}
-                  onVote={handleVote}
-                  onReaction={handleReaction}
-                  onFavorite={handleFavorite}
-                />
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </motion.div>
+        {/* Token Cards */}
+        {filteredTokens.map((token) => (
+          <TokenCard
+            key={token.address}
+            token={token}
+            isSelected={selectedToken?.address === token.address}
+            onClick={() => onTokenSelect(token)}
+            onPin={(address) => {
+              setTokens(prev =>
+                prev.map(t =>
+                  t.address === address ? { ...t, isPinned: !t.isPinned } : t
+                )
+              );
+            }}
+            onVote={(address) => {
+              setTokens(prev =>
+                prev.map(t =>
+                  t.address === address ? { ...t, votes: (t.votes || 0) + 1 } : t
+                )
+              );
+            }}
+            onReaction={(address, reaction) => {
+              const token = tokens.find(t => t.address === address);
+              if (token) {
+                onTokenReaction(token, reaction);
+              }
+            }}
+            onFavorite={(address) => {
+              setTokens(prev =>
+                prev.map(t =>
+                  t.address === address ? { ...t, isFavorite: !t.isFavorite } : t
+                )
+              );
+            }}
+          />
+        ))}
       </div>
-
-      {/* Selected Token Chart */}
-      <AnimatePresence>
-        {selectedToken && (
-          <motion.div
-            initial={{ opacity: 0, y: 100 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 100 }}
-            className="fixed bottom-0 left-0 right-0 z-20 p-6 bg-gray-900/95 backdrop-blur-xl border-t border-gray-700/50"
-          >
-            <TokenDetailChart
-              token={selectedToken}
-              onClose={() => setSelectedToken(null)}
-              onReaction={(reaction) => handleReaction(selectedToken.address, reaction)}
-              onFavorite={() => handleFavorite(selectedToken.address)}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 } 

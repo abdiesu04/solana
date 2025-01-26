@@ -35,15 +35,13 @@ export default function TokenDetailChart({ token, onClose, onReaction, onFavorit
 
   useEffect(() => {
     setIsLoading(true);
-    // Generate mock chart data for demonstration
     const generateMockData = () => {
       const data = [];
       const periods = selectedTimeframe === '24h' ? 24 : selectedTimeframe === '7d' ? 7 : 30;
       const basePrice = token.price;
-      const volatility = basePrice * 0.1; // 10% volatility
-      const trend = isPositiveChange ? 0.6 : -0.6; // Bias the trend based on 24h change
+      const volatility = basePrice * 0.1;
+      const trend = isPositiveChange ? 0.6 : -0.6;
 
-      let currentPrice = basePrice;
       for (let i = 0; i < periods; i++) {
         const time = selectedTimeframe === '24h' 
           ? `${i}:00`
@@ -51,26 +49,23 @@ export default function TokenDetailChart({ token, onClose, onReaction, onFavorit
           ? `Day ${i + 1}`
           : `Week ${Math.floor(i / 7) + 1}`;
         
-        // Add some randomness but maintain the trend
         const random = (Math.random() - 0.5) * volatility;
         const trendEffect = (trend * volatility * i) / periods;
-        currentPrice = basePrice + random + trendEffect;
+        const price = Math.max(0.000001, basePrice + random + trendEffect);
         
         data.push({
           time,
-          price: Math.max(0, currentPrice) // Ensure price doesn't go negative
+          price
         });
       }
       return data;
     };
 
-    // Simulate API delay
-    const timer = setTimeout(() => {
-      setChartData(generateMockData());
-      setIsLoading(false);
-    }, 500);
-
-    return () => clearTimeout(timer);
+    // Generate data immediately
+    const data = generateMockData();
+    console.log('Generated chart data:', data);
+    setChartData(data);
+    setIsLoading(false);
   }, [selectedTimeframe, token.price, isPositiveChange]);
 
   const timeframes = [
@@ -80,181 +75,167 @@ export default function TokenDetailChart({ token, onClose, onReaction, onFavorit
   ];
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 20 }}
-      className="bg-gray-900 rounded-xl border border-gray-700/50 overflow-hidden"
-    >
-      {/* Header */}
-      <div className="p-6 border-b border-gray-700/50">
-        <div className="flex justify-between items-start">
-          <div>
-            <h2 className="text-2xl font-bold text-white">{token.name}</h2>
-            <p className="text-gray-400">{token.symbol}</p>
-          </div>
-          <div className="flex items-center space-x-4">
-            {onFavorite && (
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={onFavorite}
-                className="text-xl"
-              >
-                <FaStar className={token.isFavorite ? 'text-yellow-400' : 'text-gray-600'} />
-              </motion.button>
-            )}
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
+    <>
+      {/* Backdrop */}
+      <div 
+        className="fixed inset-0 bg-black/75 backdrop-blur-sm z-[1000]" 
+        onClick={onClose}
+      />
+      
+      {/* Modal */}
+      <div className="fixed inset-0 z-[1001] overflow-y-auto">
+        <div className="flex min-h-full items-center justify-center p-4">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="relative w-full max-w-4xl bg-gray-900 rounded-xl shadow-2xl border border-gray-800"
+          >
+            {/* Close button */}
+            <button
               onClick={onClose}
-              className="text-gray-400 hover:text-white transition-colors"
+              className="absolute top-4 right-4 p-2 text-gray-400 hover:text-white rounded-full hover:bg-gray-700/50 transition-colors"
             >
-              <FaTimes className="w-6 h-6" />
-            </motion.button>
-          </div>
-        </div>
+              <FaTimes className="w-5 h-5" />
+            </button>
 
-        <div className="mt-4 space-y-2">
-          <div className="flex justify-between items-baseline">
-            <p className="text-3xl font-bold text-white">{formatPrice(token.price)}</p>
-            <div
-              className={`flex items-center space-x-2 ${
-                isPositiveChange ? 'text-green-400' : 'text-red-400'
-              }`}
-            >
-              <span className="text-lg font-medium">
-                {isPositiveChange ? '↑' : '↓'} {formatPercentage(Math.abs(token.change24h))}
-              </span>
+            {/* Header */}
+            <div className="p-6 border-b border-gray-800">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-white">{token.name}</h2>
+                  <p className="text-gray-400">{token.symbol}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-3xl font-bold text-white">${formatPrice(token.price)}</p>
+                  <p className={`text-lg ${isPositiveChange ? 'text-green-500' : 'text-red-500'}`}>
+                    {isPositiveChange ? '↑' : '↓'} {formatPercentage(Math.abs(token.change24h))}
+                  </p>
+                </div>
+              </div>
             </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-6">
-            <div>
-              <p className="text-sm text-gray-400">Market Cap</p>
-              <p className="text-lg font-medium text-white">${formatNumber(token.marketCap)}</p>
+            {/* Stats */}
+            <div className="grid grid-cols-2 gap-4 p-6 bg-gray-800/20">
+              <div>
+                <p className="text-sm text-gray-400">Market Cap</p>
+                <p className="text-lg font-semibold text-white">${formatNumber(token.marketCap)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-400">Volume 24h</p>
+                <p className="text-lg font-semibold text-white">${formatNumber(token.volume24h)}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-gray-400">Volume 24h</p>
-              <p className="text-lg font-medium text-white">${formatNumber(token.volume24h)}</p>
+
+            {/* Chart section */}
+            <div className="p-6">
+              <div className="flex gap-2 mb-6">
+                {timeframes.map((tf) => (
+                  <button
+                    key={tf.value}
+                    onClick={() => setSelectedTimeframe(tf.value as any)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      selectedTimeframe === tf.value
+                        ? 'bg-solana-purple text-white'
+                        : 'text-gray-400 hover:text-white hover:bg-gray-800'
+                    }`}
+                  >
+                    {tf.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="h-[400px] w-full bg-gray-800/20 rounded-lg p-4">
+                {isLoading ? (
+                  <div className="h-full flex items-center justify-center">
+                    <div className="w-8 h-8 border-2 border-solana-purple border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart 
+                      data={chartData}
+                      margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+                    >
+                      <defs>
+                        <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={isPositiveChange ? '#22c55e' : '#ef4444'} stopOpacity={0.3} />
+                          <stop offset="95%" stopColor={isPositiveChange ? '#22c55e' : '#ef4444'} stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <XAxis 
+                        dataKey="time"
+                        stroke="#6b7280"
+                        tick={{ fill: '#9ca3af' }}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        stroke="#6b7280"
+                        tick={{ fill: '#9ca3af' }}
+                        tickLine={false}
+                        tickFormatter={(value) => `$${formatNumber(value)}`}
+                        width={80}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#1f2937',
+                          border: '1px solid #374151',
+                          borderRadius: '8px',
+                          padding: '8px'
+                        }}
+                        labelStyle={{ color: '#9ca3af' }}
+                        formatter={(value: number) => [`$${formatNumber(value)}`, 'Price']}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="price"
+                        stroke={isPositiveChange ? '#22c55e' : '#ef4444'}
+                        strokeWidth={2}
+                        fill="url(#colorPrice)"
+                        isAnimationActive={true}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
             </div>
-          </div>
+
+            {/* Reactions */}
+            {onReaction && (
+              <div className="p-6 border-t border-gray-800 bg-gray-800/20">
+                <div className="flex justify-center gap-4">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => onReaction('rocket')}
+                    className="flex items-center gap-2 px-4 py-2 bg-gray-800 rounded-lg hover:bg-gray-700"
+                  >
+                    <FaRocket className="text-yellow-500" />
+                    <span className="text-white">{token.reactions?.rocket || 0}</span>
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => onReaction('fire')}
+                    className="flex items-center gap-2 px-4 py-2 bg-gray-800 rounded-lg hover:bg-gray-700"
+                  >
+                    <FaFire className="text-orange-500" />
+                    <span className="text-white">{token.reactions?.fire || 0}</span>
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => onReaction('poop')}
+                    className="flex items-center gap-2 px-4 py-2 bg-gray-800 rounded-lg hover:bg-gray-700"
+                  >
+                    <FaPoop className="text-brown-500" />
+                    <span className="text-white">{token.reactions?.poop || 0}</span>
+                  </motion.button>
+                </div>
+              </div>
+            )}
+          </motion.div>
         </div>
       </div>
-
-      {/* Chart */}
-      <div className="p-6">
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex space-x-2">
-            {timeframes.map((tf) => (
-              <button
-                key={tf.value}
-                onClick={() => setSelectedTimeframe(tf.value as any)}
-                className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                  selectedTimeframe === tf.value
-                    ? 'bg-solana-purple text-white'
-                    : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                {tf.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="h-[300px] relative">
-          {isLoading ? (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-8 h-8 border-2 border-solana-purple border-t-transparent rounded-full animate-spin" />
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData}>
-                <defs>
-                  <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
-                    <stop
-                      offset="5%"
-                      stopColor={isPositiveChange ? '#22c55e' : '#ef4444'}
-                      stopOpacity={0.3}
-                    />
-                    <stop
-                      offset="95%"
-                      stopColor={isPositiveChange ? '#22c55e' : '#ef4444'}
-                      stopOpacity={0}
-                    />
-                  </linearGradient>
-                </defs>
-                <XAxis
-                  dataKey="time"
-                  stroke="#4b5563"
-                  tick={{ fill: '#9ca3af' }}
-                  tickLine={false}
-                />
-                <YAxis
-                  stroke="#4b5563"
-                  tick={{ fill: '#9ca3af' }}
-                  tickLine={false}
-                  tickFormatter={(value) => `$${formatNumber(value)}`}
-                  domain={['auto', 'auto']}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#111827',
-                    border: '1px solid #374151',
-                    borderRadius: '0.5rem',
-                  }}
-                  labelStyle={{ color: '#9ca3af' }}
-                  itemStyle={{ color: '#fff' }}
-                  formatter={(value: number) => [`$${formatNumber(value)}`, 'Price']}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="price"
-                  stroke={isPositiveChange ? '#22c55e' : '#ef4444'}
-                  strokeWidth={2}
-                  fillOpacity={1}
-                  fill="url(#colorPrice)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-      </div>
-
-      {/* Reactions */}
-      {onReaction && (
-        <div className="p-6 border-t border-gray-700/50">
-          <div className="flex justify-around">
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={() => onReaction('rocket')}
-              className="flex items-center space-x-2 text-gray-400 hover:text-yellow-400 transition-colors"
-            >
-              <FaRocket className="text-xl" />
-              <span>{token.reactions?.rocket || 0}</span>
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={() => onReaction('fire')}
-              className="flex items-center space-x-2 text-gray-400 hover:text-orange-400 transition-colors"
-            >
-              <FaFire className="text-xl" />
-              <span>{token.reactions?.fire || 0}</span>
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={() => onReaction('poop')}
-              className="flex items-center space-x-2 text-gray-400 hover:text-brown-400 transition-colors"
-            >
-              <FaPoop className="text-xl" />
-              <span>{token.reactions?.poop || 0}</span>
-            </motion.button>
-          </div>
-        </div>
-      )}
-    </motion.div>
+    </>
   );
 } 
