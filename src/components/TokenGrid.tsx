@@ -2,24 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import TokenCard from './TokenCard';
 import TokenDetailChart from './TokenDetailChart';
-
-interface Token {
-  address: string;
-  name: string;
-  symbol: string;
-  price: number;
-  marketCap: number;
-  volume24h: number;
-  change24h: number;
-  votes: number;
-  isPinned?: boolean;
-  reactions?: {
-    rocket: number;
-    fire: number;
-    poop: number;
-  };
-  isFavorite?: boolean;
-}
+import { Token } from '@/types/token';
 
 interface TokenGridProps {
   onTokenSelect: (token: Token | null) => void;
@@ -31,6 +14,33 @@ export default function TokenGrid({ onTokenSelect, selectedToken, onTokenReactio
   const [tokens, setTokens] = useState<Token[]>([]);
   const [sortBy, setSortBy] = useState<'price' | 'marketCap' | 'volume24h' | 'change24h'>('marketCap');
   const [filterFavorites, setFilterFavorites] = useState(false);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  // Calculate optimal columns based on container width
+  const getGridColumns = (width: number) => {
+    if (width < 640) return 1; // Mobile
+    if (width < 900) return 2; // Small screens/tablets
+    if (width < 1200) return 3; // Medium screens
+    if (width < 1600) return 4; // Large screens
+    return 5; // Extra large screens
+  };
+
+  useEffect(() => {
+    // Initial container width measurement
+    const updateWidth = () => {
+      const gridContainer = document.getElementById('token-grid-container');
+      if (gridContainer) {
+        setContainerWidth(gridContainer.offsetWidth);
+      }
+    };
+
+    // Update width on mount and window resize
+    updateWidth();
+    window.addEventListener('resize', updateWidth);
+
+    // Cleanup
+    return () => window.removeEventListener('resize', updateWidth);
+  }, []);
 
   useEffect(() => {
     // Mock data for demonstration
@@ -128,15 +138,18 @@ export default function TokenGrid({ onTokenSelect, selectedToken, onTokenReactio
     ? sortedTokens.filter(token => token.isFavorite)
     : sortedTokens;
 
+  const columns = getGridColumns(containerWidth);
+  const cardWidth = Math.floor((containerWidth - (columns + 1) * 24) / columns); // 24px gap
+
   return (
     <div className="space-y-6">
       {/* Controls */}
-      <div className="flex items-center justify-between bg-gray-800/50 rounded-xl p-4">
-        <div className="flex gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-[#1E293B]/50 rounded-xl p-4 backdrop-blur-sm border border-[#334155]">
+        <div className="flex flex-wrap gap-3">
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as any)}
-            className="px-4 py-2 rounded-lg bg-gray-700/50 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-solana-purple"
+            className="px-4 py-2 rounded-xl bg-[#1E293B] text-[#94A3B8] border border-[#334155] focus:outline-none focus:ring-2 focus:ring-[#6157FF] focus:border-transparent shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)] hover:bg-[#252F43] transition-colors"
           >
             <option value="marketCap">Market Cap</option>
             <option value="price">Price</option>
@@ -145,10 +158,10 @@ export default function TokenGrid({ onTokenSelect, selectedToken, onTokenReactio
           </select>
           <button
             onClick={() => setFilterFavorites(!filterFavorites)}
-            className={`px-4 py-2 rounded-lg border transition-colors ${
+            className={`px-4 py-2 rounded-xl border transition-all duration-300 ${
               filterFavorites
-                ? 'bg-solana-purple text-white border-solana-purple'
-                : 'bg-gray-700/50 text-gray-300 border-gray-600 hover:text-white'
+                ? 'bg-[#6157FF] text-white border-[#6157FF] shadow-[0_0_12px_rgba(97,87,255,0.2)]'
+                : 'bg-[#1E293B] text-[#94A3B8] border-[#334155] hover:bg-[#252F43]'
             }`}
           >
             Favorites
@@ -157,22 +170,30 @@ export default function TokenGrid({ onTokenSelect, selectedToken, onTokenReactio
       </div>
 
       {/* Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div 
+        id="token-grid-container"
+        className="grid gap-6 auto-rows-[280px]"
+        style={{
+          gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+        }}
+      >
         {/* Add Token Card */}
         <div
           onClick={() => window.dispatchEvent(new CustomEvent('openAddTokenModal'))}
-          className="bg-gray-800/50 rounded-xl border border-gray-700/50 p-6 flex items-center justify-center cursor-pointer hover:bg-gray-700/50 hover:border-solana-purple/50 transition-all group h-[260px]"
+          className="rounded-xl bg-[#1E293B] border border-[#334155] p-6 flex items-center justify-center cursor-pointer group transition-all duration-300
+            hover:bg-[#252F43] hover:border-[#6157FF]/30 hover:shadow-[0_0_20px_rgba(97,87,255,0.1)]
+            shadow-[6px_6px_12px_rgba(0,0,0,0.2),-6px_-6px_12px_rgba(255,255,255,0.01)]"
         >
           <div className="text-center">
-            <div className="w-16 h-16 rounded-full bg-gray-700/50 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-              <svg className="w-8 h-8 text-solana-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            <div className="w-16 h-16 rounded-full bg-[#252F43] flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300 shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]">
+              <svg className="w-8 h-8 text-[#6157FF]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
               </svg>
             </div>
-            <h3 className="text-xl font-bold text-white group-hover:text-solana-purple transition-colors">
+            <h3 className="text-xl font-bold text-white group-hover:text-[#6157FF] transition-colors">
               Add Token
             </h3>
-            <p className="text-gray-400 mt-2">Track a new token</p>
+            <p className="text-[#94A3B8] mt-2 text-sm">Track a new token</p>
           </div>
         </div>
 
